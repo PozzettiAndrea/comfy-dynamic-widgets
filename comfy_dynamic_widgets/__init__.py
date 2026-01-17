@@ -15,7 +15,7 @@ Usage in node definitions:
     })
 """
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 from .scanner import scan_all_nodes
 from .generator import generate_mappings

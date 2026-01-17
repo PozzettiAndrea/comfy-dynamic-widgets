@@ -22,8 +22,8 @@ let MAPPINGS = null;
  */
 async function loadMappings() {
     const paths = [
-        "/extensions/comfyui-dynamic-widgets/js/mappings.json",
-        "/extensions/ComfyUI-Dynamic-Widgets/js/mappings.json",
+        "/extensions/comfy-dynamic-widgets/js/mappings.json",
+        "/extensions/Comfy-Dynamic-Widgets/js/mappings.json",
     ];
 
     for (const path of paths) {
