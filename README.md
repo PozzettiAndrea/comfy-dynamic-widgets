@@ -1,11 +1,11 @@
-# comfyui-dynamic-widgets
+# comfy-dynamic-widgets
 
 A Python library that enables conditional widget visibility in ComfyUI nodes via simple metadata.
 
 ## Installation
 
 ```bash
-pip install comfyui-dynamic-widgets
+pip install comfy-dynamic-widgets
 ```
 
 ## Usage
@@ -44,7 +44,7 @@ import os
 
 def generate_widget_mappings():
     try:
-        from comfyui_dynamic_widgets import scan_all_nodes, generate_mappings
+        from comfy_dynamic_widgets import scan_all_nodes, generate_mappings
 
         configs = scan_all_nodes()
         if not configs:
@@ -59,7 +59,7 @@ def generate_widget_mappings():
             json.dump(mappings, f, indent=2)
 
     except ImportError:
-        print("comfyui-dynamic-widgets not installed")
+        print("comfy-dynamic-widgets not installed")
 
 generate_widget_mappings()
 ```

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2025 ComfyUI-DynamicWidgets Contributors
+# Copyright (C) 2025 Comfy-DynamicWidgets Contributors
 
 """
-ComfyUI Dynamic Widgets
+Comfy Dynamic Widgets
 
 A standalone package that enables conditional widget visibility in ComfyUI nodes
 via simple metadata. Node authors can use "visible_when" in widget definitions
