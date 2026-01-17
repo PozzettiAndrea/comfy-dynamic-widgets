@@ -18,29 +18,26 @@ console.log("[DynamicWidgets] Loading extension...");
 let MAPPINGS = null;
 
 /**
- * Fetch mappings from generated JSON
+ * Fetch mappings from generated JSON (relative to this script's location)
  */
 async function loadMappings() {
-    const paths = [
-        "/extensions/comfy-dynamic-widgets/js/mappings.json",
-        "/extensions/Comfy-Dynamic-Widgets/js/mappings.json",
-    ];
+    // Get the directory this script is loaded from
+    const scriptUrl = new URL(import.meta.url);
+    const baseDir = scriptUrl.pathname.substring(0, scriptUrl.pathname.lastIndexOf('/'));
 
-    for (const path of paths) {
-        try {
-            const response = await fetch(path);
-            if (response.ok) {
-                const data = await response.json();
-                MAPPINGS = data;
-                const nodeCount = Object.keys(data.nodes || {}).length;
-                console.log(`[DynamicWidgets] Loaded mappings for ${nodeCount} nodes from ${path}`);
-                return true;
-            }
-        } catch (e) {
-            // Try next path
+    // Load mappings.json from same directory
+    try {
+        const response = await fetch(baseDir + "/mappings.json");
+        if (response.ok) {
+            const data = await response.json();
+            MAPPINGS = data;
+            const nodeCount = Object.keys(data.nodes || {}).length;
+            console.log(`[DynamicWidgets] Loaded mappings for ${nodeCount} nodes`);
+            return true;
         }
+    } catch (e) {
+        console.warn("[DynamicWidgets] Could not load mappings.json:", e);
     }
-    console.warn("[DynamicWidgets] Could not load mappings.json - no dynamic widgets configured");
     return false;
 }
 
