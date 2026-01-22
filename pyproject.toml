@@ -1,6 +1,6 @@
 [project]
 name = "comfy-dynamic-widgets"
-version = "0.0.6"
+version = "0.0.7"
 description = "Dynamic widget visibility for ComfyUI nodes via simple metadata"
 readme = "README.md"
 license = {text = "MIT"}
