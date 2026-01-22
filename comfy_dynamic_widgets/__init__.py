@@ -19,7 +19,7 @@ import os
 
 __version__ = "0.0.3"
 
-from .scanner import scan_all_nodes
+from .scanner import scan_all_nodes, scan_specific_nodes
 from .generator import generate_mappings
 
 
@@ -33,4 +33,4 @@ def get_web_dir() -> str:
     return os.path.join(os.path.dirname(__file__), "web", "js")
 
 
-__all__ = ["scan_all_nodes", "generate_mappings", "get_js_path", "get_web_dir", "__version__"]
+__all__ = ["scan_all_nodes", "scan_specific_nodes", "generate_mappings", "get_js_path", "get_web_dir", "__version__"]

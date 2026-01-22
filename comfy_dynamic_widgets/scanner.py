@@ -34,6 +34,20 @@ def scan_all_nodes() -> dict[str, dict]:
     # Get the node class mappings from ComfyUI
     node_mappings = getattr(nodes, "NODE_CLASS_MAPPINGS", {})
 
+    return scan_specific_nodes(node_mappings)
+
+
+def scan_specific_nodes(node_mappings: dict[str, type]) -> dict[str, dict]:
+    """
+    Scan specific node classes for visible_when metadata.
+
+    Args:
+        node_mappings: Dict mapping node names to node classes
+                       (same format as NODE_CLASS_MAPPINGS)
+
+    Returns:
+        dict: Mapping of node_class -> visibility configuration
+    """
     results = {}
 
     for node_name, node_class in node_mappings.items():
