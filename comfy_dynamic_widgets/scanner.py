@@ -2,7 +2,8 @@
 # Copyright (C) 2025 ComfyUI-DynamicWidgets Contributors
 
 """
-Node Scanner - Introspects ComfyUI nodes to extract visible_when metadata.
+Node Scanner - Introspects ComfyUI nodes to extract visible_when and
+visible_when_connected metadata.
 """
 
 from typing import Any
@@ -85,6 +86,9 @@ def _scan_node_class(node_name: str, node_class: type) -> dict | None:
     # Collect all visible_when entries
     # Structure: selector_name -> selector_value -> [widget_names]
     selectors: dict[str, dict[str, list[str]]] = {}
+    # Collect all visible_when_connected entries
+    # Structure: input_name -> {source_widget, contains: {item_name: [patterns]}}
+    connections: dict[str, dict] = {}
 
     # Scan both required and optional inputs
     for section in ["required", "optional"]:
@@ -97,10 +101,19 @@ def _scan_node_class(node_name: str, node_class: type) -> dict | None:
             if visible_when:
                 _add_to_selectors(selectors, widget_name, visible_when)
 
-    if not selectors:
+            vwc = _extract_visible_when_connected(widget_def)
+            if vwc:
+                _add_to_connections(connections, widget_name, vwc)
+
+    if not selectors and not connections:
         return None
 
-    return {"selectors": selectors}
+    result = {}
+    if selectors:
+        result["selectors"] = selectors
+    if connections:
+        result["connections"] = connections
+    return result
 
 
 def _extract_visible_when(widget_def: Any) -> dict | None:
@@ -162,3 +175,74 @@ def _add_to_selectors(
 
             if widget_name not in selectors[selector_name][value_str]:
                 selectors[selector_name][value_str].append(widget_name)
+
+
+def _extract_visible_when_connected(widget_def: Any) -> dict | None:
+    """
+    Extract visible_when_connected metadata from a widget definition.
+
+    Widget definitions are typically tuples like:
+        ("CAMERA_PARAMS", {
+            "visible_when_connected": {
+                "input": "da3_model",
+                "source_widget": "model",
+                "contains": ["da3_small", "nested"],
+            }
+        })
+
+    Args:
+        widget_def: The widget definition tuple/list
+
+    Returns:
+        dict or None: The visible_when_connected dict if present and valid
+    """
+    if not isinstance(widget_def, (tuple, list)):
+        return None
+
+    if len(widget_def) < 2:
+        return None
+
+    options = widget_def[1]
+    if not isinstance(options, dict):
+        return None
+
+    vwc = options.get("visible_when_connected")
+    if not isinstance(vwc, dict):
+        return None
+
+    # Validate required fields
+    if "input" not in vwc or "source_widget" not in vwc:
+        return None
+    if "contains" not in vwc:
+        return None
+
+    return vwc
+
+
+def _add_to_connections(
+    connections: dict[str, dict],
+    widget_name: str,
+    vwc: dict
+) -> None:
+    """
+    Add connection-based visibility rules to the connections structure.
+
+    Args:
+        connections: The connections dict to update
+        widget_name: The name of the widget/input with visible_when_connected
+        vwc: The visible_when_connected dict
+    """
+    input_name = vwc["input"]
+    source_widget = vwc["source_widget"]
+
+    if input_name not in connections:
+        connections[input_name] = {
+            "source_widget": source_widget,
+            "contains": {},
+        }
+
+    patterns = vwc["contains"]
+    if not isinstance(patterns, list):
+        patterns = [patterns]
+
+    connections[input_name]["contains"][widget_name] = [str(p) for p in patterns]
