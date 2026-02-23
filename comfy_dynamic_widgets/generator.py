@@ -3,6 +3,20 @@
 
 """
 Mapping Generator - Transforms node visibility configs into JS-friendly JSON format.
+
+Version 2 format uses widget-centric rules with multi-selector AND logic:
+{
+    "version": 2,
+    "nodes": {
+        "NodeClassName": {
+            "selectors": ["backend", "output_dim"],
+            "rules": {
+                "widget_name": {"backend": ["GMSH"], "output_dim": ["3D Volume"]},
+                ...
+            }
+        }
+    }
+}
 """
 
 
@@ -11,36 +25,13 @@ def generate_mappings(node_configs: dict) -> dict:
     Transform node visibility configs into JS-friendly format.
 
     Args:
-        node_configs: Output from scan_all_nodes()
-        {
-            "NodeClassName": {
-                "selectors": {
-                    "backend": {
-                        "blender_voxel": ["voxel_size"],
-                        ...
-                    }
-                }
-            }
-        }
+        node_configs: Output from scan_all_nodes() / scan_specific_nodes()
 
     Returns:
-        dict: JS-friendly mapping format
-        {
-            "version": 1,
-            "nodes": {
-                "NodeClassName": {
-                    "selectors": {
-                        "backend": {
-                            "blender_voxel": ["voxel_size"],
-                            ...
-                        }
-                    }
-                }
-            }
-        }
+        dict: JS-friendly mapping format (version 2)
     """
     return {
-        "version": 1,
+        "version": 2,
         "nodes": node_configs,
     }
 
