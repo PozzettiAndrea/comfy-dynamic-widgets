@@ -4,6 +4,21 @@
 """
 Node Scanner - Introspects ComfyUI nodes to extract visible_when and
 visible_when_connected metadata.
+
+Output format (v2, widget-centric rules with AND logic):
+{
+    "NodeClassName": {
+        "selectors": ["backend", "output_dim", "size_mode"],
+        "rules": {
+            "widget_name": {"backend": ["GMSH"], "output_dim": ["3D Volume"]},
+            ...
+        },
+        "connections": { ... }
+    }
+}
+
+Multiple keys in a rule = AND (widget visible when ALL conditions pass).
+Multiple values per key = OR (condition passes if current value matches ANY).
 """
 
 from typing import Any
@@ -15,16 +30,6 @@ def scan_all_nodes() -> dict[str, dict]:
 
     Returns:
         dict: Mapping of node_class -> visibility configuration
-        {
-            "NodeClassName": {
-                "selectors": {
-                    "selector_widget_name": {
-                        "selector_value": ["widget1", "widget2"],
-                        ...
-                    }
-                }
-            }
-        }
     """
     try:
         import nodes
@@ -83,11 +88,11 @@ def _scan_node_class(node_name: str, node_class: type) -> dict | None:
     if not isinstance(input_types, dict):
         return None
 
-    # Collect all visible_when entries
-    # Structure: selector_name -> selector_value -> [widget_names]
-    selectors: dict[str, dict[str, list[str]]] = {}
-    # Collect all visible_when_connected entries
-    # Structure: input_name -> {source_widget, contains: {item_name: [patterns]}}
+    # Widget-centric rules: widget_name -> {selector: [values], ...}
+    rules: dict[str, dict[str, list[str]]] = {}
+    # Set of all selector names referenced in rules
+    selector_names: set[str] = set()
+    # Connection-based visibility (unchanged)
     connections: dict[str, dict] = {}
 
     # Scan both required and optional inputs
@@ -99,18 +104,19 @@ def _scan_node_class(node_name: str, node_class: type) -> dict | None:
         for widget_name, widget_def in section_inputs.items():
             visible_when = _extract_visible_when(widget_def)
             if visible_when:
-                _add_to_selectors(selectors, widget_name, visible_when)
+                _add_rule(rules, selector_names, widget_name, visible_when)
 
             vwc = _extract_visible_when_connected(widget_def)
             if vwc:
                 _add_to_connections(connections, widget_name, vwc)
 
-    if not selectors and not connections:
+    if not rules and not connections:
         return None
 
     result = {}
-    if selectors:
-        result["selectors"] = selectors
+    if rules:
+        result["selectors"] = sorted(selector_names)
+        result["rules"] = rules
     if connections:
         result["connections"] = connections
     return result
@@ -122,6 +128,9 @@ def _extract_visible_when(widget_def: Any) -> dict | None:
 
     Widget definitions are typically tuples like:
         ("FLOAT", {"default": 0.1, "visible_when": {"backend": ["blender_voxel"]}})
+
+    Multi-selector AND is supported:
+        ("FLOAT", {"visible_when": {"backend": ["GMSH"], "output_dim": ["3D Volume"]}})
 
     Args:
         widget_def: The widget definition tuple/list
@@ -147,34 +156,37 @@ def _extract_visible_when(widget_def: Any) -> dict | None:
     return visible_when
 
 
-def _add_to_selectors(
-    selectors: dict[str, dict[str, list[str]]],
+def _add_rule(
+    rules: dict[str, dict[str, list[str]]],
+    selector_names: set[str],
     widget_name: str,
     visible_when: dict
 ) -> None:
     """
-    Add widget visibility rules to the selectors structure.
+    Add a widget visibility rule (supports multi-selector AND).
 
     Args:
-        selectors: The selectors dict to update
+        rules: The rules dict to update (widget_name -> conditions)
+        selector_names: Set of selector names to update
         widget_name: The name of the widget with visible_when
-        visible_when: The visible_when dict, e.g. {"backend": ["blender_voxel"]}
+        visible_when: The visible_when dict,
+            e.g. {"backend": ["GMSH"], "output_dim": ["3D Volume"]}
     """
+    rule = {}
     for selector_name, selector_values in visible_when.items():
         if not isinstance(selector_values, list):
             # Allow single value without list wrapper
             selector_values = [selector_values]
 
-        if selector_name not in selectors:
-            selectors[selector_name] = {}
+        selector_names.add(selector_name)
+        # Normalize: JS String(true)="true", String(false)="false"
+        rule[selector_name] = [
+            str(v).lower() if isinstance(v, bool) else str(v)
+            for v in selector_values
+        ]
 
-        for value in selector_values:
-            value_str = str(value)
-            if value_str not in selectors[selector_name]:
-                selectors[selector_name][value_str] = []
-
-            if widget_name not in selectors[selector_name][value_str]:
-                selectors[selector_name][value_str].append(widget_name)
+    if rule:
+        rules[widget_name] = rule
 
 
 def _extract_visible_when_connected(widget_def: Any) -> dict | None:
